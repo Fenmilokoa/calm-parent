@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { getUsage, incrementUsage } from "@/lib/usage";
 import type { GuidanceResponse } from "@/lib/guidance-types";
 import { guidanceToReadAloud, validateGuidanceResponse } from "@/lib/guidance-types";
+import { track } from "@/lib/analytics";
 import { ShieldCheck } from "lucide-react";
 
 type Step =
@@ -34,6 +35,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<{ situation: string; guidance: GuidanceResponse }[]>([]);
   const [usedToday, setUsedToday] = useState(0);
+  const [loadingSkipped, setLoadingSkipped] = useState(false);
+  const [quickPath, setQuickPath] = useState(false);
   const isPremium = false; // Could come from auth/subscription
 
   const refreshUsage = useCallback(() => {
@@ -63,17 +66,66 @@ export default function Home() {
     refreshUsage();
     if (!isPremium && getUsage().count >= FREE_DAILY) {
       setStep("limit-reached");
+      track("onboarding_drop_off", { reason: "limit_reached" });
       return;
     }
     setStep("describe");
     setSituation("");
     setGuidance(null);
     setError(null);
+    track("guidance_requested", { source: "describe" });
+  }, [isPremium, refreshUsage]);
+
+  const handleQuickGuidance = useCallback(async () => {
+    refreshUsage();
+    if (!isPremium && getUsage().count >= FREE_DAILY) {
+      setStep("limit-reached");
+      track("onboarding_drop_off", { reason: "limit_reached" });
+      return;
+    }
+    setError(null);
+    setStep("loading");
+    setQuickPath(true);
+    setLoadingSkipped(true);
+    track("cta_guidance_now");
+    try {
+      const res = await fetch("/api/guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          situation: "",
+          dial: "balanced",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      const guidancePayload = validateGuidanceResponse(data.guidance);
+      setGuidance(guidancePayload);
+      setHistory((prev) =>
+        prev.concat({
+          situation: "General support",
+          guidance: guidancePayload,
+        })
+      );
+      incrementUsage();
+      setUsedToday(getUsage().count);
+      setStep("result");
+      setQuickPath(false);
+      track("guidance_completed", { source: "quick" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setStep("describe");
+      setQuickPath(false);
+      setSituation("");
+      setDial("balanced");
+      track("guidance_error", { message: e instanceof Error ? e.message : "Unknown" });
+    }
   }, [isPremium, refreshUsage]);
 
   const handleSubmit = useCallback(async () => {
     setError(null);
     setStep("loading");
+    setLoadingSkipped(false);
     try {
       const res = await fetch("/api/guide", {
         method: "POST",
@@ -96,9 +148,11 @@ export default function Home() {
       incrementUsage();
       setUsedToday(getUsage().count);
       setStep("result");
+      track("guidance_completed", { source: "describe" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStep("describe");
+      track("guidance_error", { message: e instanceof Error ? e.message : "Unknown" });
     }
   }, [situation, dial]);
 
@@ -181,16 +235,18 @@ export default function Home() {
                 <Button
                   size="lg"
                   className="w-full"
-                  onClick={handleNeedGuidance}
+                  onClick={handleQuickGuidance}
                   aria-label="I need guidance now"
+                  data-track="cta_guidance_now"
                 >
                   I need guidance now
                 </Button>
-                <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
-                  <span>Hands full?</span>
-                  <span className="hidden sm:inline">•</span>
-                  <span>Use voice input and read-aloud.</span>
-                </div>
+                <Button variant="ghost" size="sm" onClick={handleNeedGuidance} className="w-full">
+                  Add details first for tailored advice
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Not a substitute for professional advice. In crisis, contact emergency services or 988 (US).
+                </p>
               </CardContent>
               <CardFooter className="justify-center border-t bg-muted/30 py-4">
                 <Button asChild variant="link">
@@ -208,6 +264,11 @@ export default function Home() {
               isPremium={isPremium}
               onUpgrade={() => {}}
             />
+            {step === "describe" && (
+              <p className="mt-2 text-xs font-medium text-muted-foreground" aria-live="polite">
+                Step 1 of 2
+              </p>
+            )}
             <div className="mt-4 space-y-4">
               {step === "describe" && (
                 <>
@@ -235,16 +296,22 @@ export default function Home() {
                   </Card>
                   {error && (
                     <Card className="border-destructive/30 bg-destructive/5">
-                      <CardContent className="p-4 text-sm text-destructive" role="alert">
-                        {error}
+                      <CardContent className="p-4 space-y-3 text-sm" role="alert">
+                        <p className="text-destructive">{error}</p>
+                        <p className="text-muted-foreground">
+                          If this keeps happening, check your connection. You can try again in a moment.
+                        </p>
+                        <Button variant="outline" size="sm" onClick={handleSubmit} className="min-h-[44px]">
+                          Try again
+                        </Button>
                       </CardContent>
                     </Card>
                   )}
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button variant="outline" onClick={handleStartOver} className="sm:w-auto">
+                    <Button variant="outline" size="default" onClick={handleStartOver} className="sm:w-auto min-h-[44px] order-2 sm:order-1">
                       Back
                     </Button>
-                    <Button onClick={handleSubmit} className="flex-1">
+                    <Button onClick={handleSubmit} size="lg" className="flex-1 min-h-[48px] order-1 sm:order-2" data-track="cta_get_guidance">
                       Get guidance
                     </Button>
                   </div>
@@ -265,6 +332,9 @@ export default function Home() {
                       </div>
                       <VoiceControls onTranscript={() => {}} textToRead={guidanceToReadAloud(guidance)} />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Not a substitute for professional advice. If you or your child are in danger, contact emergency services or 988 (US).
+                    </p>
                     <GuidanceView guidance={guidance} />
                   </div>
 
@@ -274,8 +344,10 @@ export default function Home() {
                         Undo last
                       </Button>
                     )}
-                    <Button onClick={handleNeedGuidance}>New guidance</Button>
-                    <Button variant="ghost" onClick={handleStartOver}>
+                    <Button onClick={handleNeedGuidance} data-track="cta_personalised">
+                      Get personalised guidance
+                    </Button>
+                    <Button variant="ghost" onClick={handleStartOver} data-track="cta_home">
                       Home
                     </Button>
                   </div>
@@ -287,7 +359,21 @@ export default function Home() {
 
         {step === "loading" && (
           <div className="py-2">
-            <BreathingExercise />
+            {!quickPath && (
+              <p className="mb-2 text-xs font-medium text-muted-foreground" aria-live="polite">
+                Step 2 of 2
+              </p>
+            )}
+            {quickPath || loadingSkipped ? (
+              <Card className="mx-auto max-w-md">
+                <CardContent className="flex flex-col items-center gap-4 py-8">
+                  <p className="text-sm text-muted-foreground">Preparing your guidance…</p>
+                  <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
+                </CardContent>
+              </Card>
+            ) : (
+              <BreathingExercise onSkip={() => { setLoadingSkipped(true); track("skip_breathing"); }} />
+            )}
           </div>
         )}
 

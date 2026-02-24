@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const CYCLE_MS = 4000; // 4s breathe in, 4s breathe out
 
-export function BreathingExercise() {
+export function BreathingExercise({ onSkip }: { onSkip?: () => void }) {
   const [phase, setPhase] = useState<"in" | "out">("in");
   const [progress, setProgress] = useState(0);
 
@@ -65,6 +66,11 @@ export function BreathingExercise() {
           <p className="text-center text-sm text-muted-foreground">
             You can keep it simple: steady voice, one clear boundary, then wait.
           </p>
+          {onSkip && (
+            <Button variant="ghost" size="sm" onClick={onSkip} className="mt-2 min-h-[44px] min-w-[44px]" data-track="skip_breathing" aria-label="Skip breathing exercise">
+              Skip
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

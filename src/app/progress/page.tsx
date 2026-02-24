@@ -40,16 +40,19 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-dashed">
           <CardHeader>
             <CardTitle className="text-base">This week</CardTitle>
             <CardDescription>
-              Sign in to see weekly trends and personalised insights.
+              Weekly trends and personalised insights.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold tracking-tight text-muted-foreground">
-              —
+            <p className="text-sm font-medium text-muted-foreground">
+              Coming soon
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              We’re building this. Your daily count above is available now.
             </p>
           </CardContent>
         </Card>

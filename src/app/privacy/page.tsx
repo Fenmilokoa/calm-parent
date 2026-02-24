@@ -44,6 +44,47 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Data retention</CardTitle>
+            <CardDescription>How long we keep data.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            When you do not sign in, session data may be held only for the duration of your
+            visit and in local storage on your device; we do not retain it on our servers.
+            If you sign in, we retain your account and history until you delete your account
+            or request deletion. You can request deletion at any time via Settings or by
+            contacting us.
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Third-party processors</CardTitle>
+            <CardDescription>Who we use to run the service.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            We use Vercel for hosting and Google (Generative AI / Gemini) to generate
+            guidance. Requests you make are sent to these providers in accordance with
+            their privacy policies. We do not pass your data to other third parties for
+            advertising or profiling.
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Children&apos;s data</CardTitle>
+            <CardDescription>This app is for parents.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Calm Parent is intended for use by parents and caregivers. We do not knowingly
+            collect personal data from children. If you are under 13 (or the applicable
+            age in your region), please do not use this service. Compliance with
+            regulations such as COPPA and GDPR-K is important to us; this policy may be
+            updated as we add features. Please review with legal counsel for your context.
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Security</CardTitle>
             <CardDescription>Industry-standard protections.</CardDescription>
           </CardHeader>
@@ -65,6 +106,11 @@ export default function PrivacyPage() {
             .
           </CardContent>
         </Card>
+
+        <p className="mt-6 text-xs text-muted-foreground">
+          This summary is not legal advice. We recommend reviewing our full policy and
+          consulting legal counsel for your compliance needs.
+        </p>
       </div>
     </div>
   );

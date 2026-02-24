@@ -24,7 +24,7 @@ export function PrivacyBanner() {
             <ul className="list-inside list-disc space-y-1">
               <li>You can use the app without signing in.</li>
               <li>Session data is only used to improve your guidance and is not sold.</li>
-              <li>You can delete your data anytime from Settings.</li>
+              <li>You can delete your data anytime from <Link href="/settings" className="underline">Settings</Link>.</li>
               <li>We use industry-standard encryption.</li>
             </ul>
             <Link

@@ -54,10 +54,33 @@ export async function POST(request: NextRequest) {
       dial?: DialValue;
     };
 
+    // Input validation
+    const situationStr = typeof situation === "string" ? situation.trim() : "";
+    if (situationStr.length > 2000) {
+      return NextResponse.json(
+        { error: "Your message is too long. Please shorten it to under 2000 characters." },
+        { status: 400 }
+      );
+    }
+    const safeDial: DialValue =
+      dial === "more-empathy" || dial === "more-direct" ? dial : "balanced";
+
+    // Basic safety: reject clearly harmful or off-topic queries (minimal list to avoid false positives)
+    const lower = situationStr.toLowerCase();
+    const blocked =
+      /\b(how to (hurt|harm|hit|punish physically|abuse)|kill|self[- ]harm)\b/.test(lower) ||
+      /(\b(illegal|weapon|drug)\b.*\b(child|kid|toddler)\b)/.test(lower);
+    if (blocked) {
+      return NextResponse.json(
+        { error: "This app offers parenting support only. If you or your child are in danger, please contact emergency services or a crisis line." },
+        { status: 400 }
+      );
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
-    const toneInstruction = TONE_PROMPTS[dial] ?? TONE_PROMPTS.balanced;
-    const situationText = situation.trim()
-      ? `Situation: ${situation.trim().slice(0, 300)}`
+    const toneInstruction = TONE_PROMPTS[safeDial] ?? TONE_PROMPTS.balanced;
+    const situationText = situationStr
+      ? `Situation: ${situationStr.slice(0, 500)}`
       : "Parent needs general support during a difficult moment.";
 
     const prompt = `You are a trauma-informed parenting coach. Output only valid JSON.
@@ -89,8 +112,8 @@ Reply with only the JSON object.`;
           console.warn("Guide API: JSON parse failed, using fallback", parseErr);
           return NextResponse.json({
             guidance: getFallbackGuidance(),
-            dial,
-            situation: situation.slice(0, 200),
+            dial: safeDial,
+            situation: situationStr.slice(0, 200),
             modelId,
             fallback: true,
           });
@@ -100,8 +123,8 @@ Reply with only the JSON object.`;
 
         return NextResponse.json({
           guidance,
-          dial,
-          situation: situation.slice(0, 200),
+          dial: safeDial,
+          situation: situationStr.slice(0, 200),
           modelId,
         });
       } catch (err) {

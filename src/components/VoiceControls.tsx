@@ -68,8 +68,10 @@ export function VoiceControls({
         variant="outline"
         size="sm"
         aria-label="Describe situation with voice"
+        title="Describe the situation with your voice (hands-free)"
+        className="min-h-[44px]"
       >
-        <Mic className="size-4" />
+        <Mic className="size-4" aria-hidden />
         {listening ? "Listening…" : "Voice input"}
       </Button>
       {textToRead && (
@@ -80,6 +82,8 @@ export function VoiceControls({
           variant="outline"
           size="sm"
           aria-label={reading ? "Stop reading" : "Read guidance aloud"}
+          title={reading ? "Stop reading aloud" : "Listen to the guidance (hands-free)"}
+          className="min-h-[44px]"
         >
           {reading ? <Square className="size-4" /> : <Volume2 className="size-4" />}
           {reading ? "Stop" : "Read aloud"}
