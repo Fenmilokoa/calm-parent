@@ -78,7 +78,6 @@ export default function Home() {
     setError(null);
     setStep("loading");
     setQuickPath(true);
-    setLoadingSkipped(true);
     track("cta_guidance_now");
     try {
       const res = await fetch("/api/guide", {
@@ -405,23 +404,25 @@ export default function Home() {
         )}
 
         {step === "loading" && (
-          <div className="py-2">
-            {!quickPath && (
-              <p className="mb-2 text-xs font-medium text-muted-foreground" aria-live="polite">
-                Step 2 of 2
-              </p>
-            )}
-            {quickPath || loadingSkipped ? (
-              <Card className="mx-auto max-w-md">
-                <CardContent className="flex flex-col items-center gap-4 py-8">
-                  <p className="text-sm text-muted-foreground">Preparing your guidance…</p>
-                  <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
-                </CardContent>
-              </Card>
+          <>
+            {loadingSkipped ? (
+              <div className="py-2">
+                {!quickPath && (
+                  <p className="mb-2 text-xs font-medium text-muted-foreground" aria-live="polite">
+                    Step 2 of 2
+                  </p>
+                )}
+                <Card className="mx-auto max-w-md">
+                  <CardContent className="flex flex-col items-center gap-4 py-8">
+                    <p className="text-sm text-muted-foreground">Preparing your guidance…</p>
+                    <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
+                  </CardContent>
+                </Card>
+              </div>
             ) : (
               <BreathingExercise onSkip={() => { setLoadingSkipped(true); track("skip_breathing"); }} />
             )}
-          </div>
+          </>
         )}
 
         {step === "limit-reached" && (
