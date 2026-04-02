@@ -37,6 +37,8 @@ export default function Home() {
   const [usedToday, setUsedToday] = useState(0);
   const [loadingSkipped, setLoadingSkipped] = useState(false);
   const [quickPath, setQuickPath] = useState(false);
+  const [showDialTooltip, setShowDialTooltip] = useState(false);
+  const [showSaveNudge, setShowSaveNudge] = useState(false);
   const isPremium = false; // Could come from auth/subscription
 
   const refreshUsage = useCallback(() => {
@@ -44,6 +46,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => { refreshUsage(); }, [refreshUsage]);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("calm-parent-dial-seen");
+    if (!seen) setShowDialTooltip(true);
+  }, []);
 
   const handleNeedGuidance = useCallback(() => {
     refreshUsage();
@@ -53,6 +60,8 @@ export default function Home() {
       return;
     }
     setStep("describe");
+    const seen = localStorage.getItem("calm-parent-dial-seen");
+    if (!seen) setShowDialTooltip(true);
     setSituation("");
     setGuidance(null);
     setError(null);
@@ -92,7 +101,11 @@ export default function Home() {
         })
       );
       if (typeof data.remaining === "number") { setUsageFromServer(data.remaining); setUsedToday(FREE_DAILY - data.remaining); }
+      localStorage.setItem("calm-parent-dial-seen", "1");
+      setShowDialTooltip(false);
       setStep("result");
+      const nudgeDismissed = localStorage.getItem("calm-parent-nudge-dismissed");
+      if (!nudgeDismissed) setShowSaveNudge(true);
       setQuickPath(false);
       track("guidance_completed", { source: "quick" });
     } catch (e) {
@@ -131,6 +144,8 @@ export default function Home() {
       );
       if (typeof data.remaining === "number") { setUsageFromServer(data.remaining); setUsedToday(FREE_DAILY - data.remaining); }
       setStep("result");
+      const nudgeDismissed = localStorage.getItem("calm-parent-nudge-dismissed");
+      if (!nudgeDismissed) setShowSaveNudge(true);
       track("guidance_completed", { source: "describe" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -207,6 +222,14 @@ export default function Home() {
               </p>
             </div>
 
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>Describe the moment</span>
+              <span className="text-muted-foreground/40">→</span>
+              <span>Get calm steps</span>
+              <span className="text-muted-foreground/40">→</span>
+              <span>Feel steadier</span>
+            </div>
+
             <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-lg">Start in one tap</CardTitle>
@@ -255,7 +278,24 @@ export default function Home() {
             <div className="mt-4 space-y-4">
               {step === "describe" && (
                 <>
-                  <CalmDial value={dial} onChange={setDial} />
+                  <div className="relative">
+                    <CalmDial value={dial} onChange={setDial} />
+                    {showDialTooltip && (
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground flex items-start justify-between gap-3">
+                        <p><span className="font-medium text-foreground">Tip:</span> Slide the dial left for a gentler tone, right for clear direct steps — whatever you can handle right now.</p>
+                        <button
+                          onClick={() => {
+                            setShowDialTooltip(false);
+                            localStorage.setItem("calm-parent-dial-seen", "1");
+                          }}
+                          className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground text-xs mt-0.5"
+                          aria-label="Dismiss tip"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <Card>
                     <CardHeader className="pb-4">
                       <CardTitle className="text-base">
@@ -334,6 +374,30 @@ export default function Home() {
                       Home
                     </Button>
                   </div>
+
+                  {showSaveNudge && (
+                    <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm flex items-center justify-between gap-3 mt-2">
+                      <p className="text-muted-foreground">
+                        <span className="font-medium text-foreground">Save this guidance?</span>{" "}
+                        Create a free account to keep a history of what worked.
+                      </p>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <a href="/login" className="text-primary text-xs font-medium hover:underline">
+                          Sign up free
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowSaveNudge(false);
+                            localStorage.setItem("calm-parent-nudge-dismissed", "1");
+                          }}
+                          className="text-muted-foreground/60 hover:text-muted-foreground text-xs"
+                          aria-label="Dismiss"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
