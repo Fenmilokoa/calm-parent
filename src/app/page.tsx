@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { getUsage, incrementUsage } from "@/lib/usage";
+import { getUsageDisplay, setUsageFromServer } from "@/lib/usage";
 import type { GuidanceResponse } from "@/lib/guidance-types";
 import { guidanceToReadAloud, validateGuidanceResponse } from "@/lib/guidance-types";
 import { track } from "@/lib/analytics";
@@ -40,31 +40,14 @@ export default function Home() {
   const isPremium = false; // Could come from auth/subscription
 
   const refreshUsage = useCallback(() => {
-    setUsedToday(getUsage().count);
+    setUsedToday(getUsageDisplay().count);
   }, []);
 
-  useEffect(() => {
-    refreshUsage();
-    // #region agent log
-    fetch("http://127.0.0.1:7574/ingest/05274255-d603-4876-b34f-a620ea482593", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "83788e" },
-      body: JSON.stringify({
-        sessionId: "83788e",
-        runId: "pre-fix",
-        hypothesisId: "H1",
-        location: "src/app/page.tsx:useEffect",
-        message: "Home mounted",
-        data: {},
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [refreshUsage]);
+  useEffect(() => { refreshUsage(); }, [refreshUsage]);
 
   const handleNeedGuidance = useCallback(() => {
     refreshUsage();
-    if (!isPremium && getUsage().count >= FREE_DAILY) {
+    if (!isPremium && getUsageDisplay().count >= FREE_DAILY) {
       setStep("limit-reached");
       track("onboarding_drop_off", { reason: "limit_reached" });
       return;
@@ -78,7 +61,7 @@ export default function Home() {
 
   const handleQuickGuidance = useCallback(async () => {
     refreshUsage();
-    if (!isPremium && getUsage().count >= FREE_DAILY) {
+    if (!isPremium && getUsageDisplay().count >= FREE_DAILY) {
       setStep("limit-reached");
       track("onboarding_drop_off", { reason: "limit_reached" });
       return;
@@ -98,6 +81,7 @@ export default function Home() {
         }),
       });
       const data = await res.json();
+      if (res.status === 429) { setStep("limit-reached"); setQuickPath(false); return; }
       if (!res.ok) throw new Error(data.error || "Request failed");
       const guidancePayload = validateGuidanceResponse(data.guidance);
       setGuidance(guidancePayload);
@@ -107,8 +91,7 @@ export default function Home() {
           guidance: guidancePayload,
         })
       );
-      incrementUsage();
-      setUsedToday(getUsage().count);
+      if (typeof data.remaining === "number") { setUsageFromServer(data.remaining); setUsedToday(FREE_DAILY - data.remaining); }
       setStep("result");
       setQuickPath(false);
       track("guidance_completed", { source: "quick" });
@@ -136,6 +119,7 @@ export default function Home() {
         }),
       });
       const data = await res.json();
+      if (res.status === 429) { setStep("limit-reached"); setQuickPath(false); return; }
       if (!res.ok) throw new Error(data.error || "Request failed");
       const guidancePayload = validateGuidanceResponse(data.guidance);
       setGuidance(guidancePayload);
@@ -145,8 +129,7 @@ export default function Home() {
           guidance: guidancePayload,
         })
       );
-      incrementUsage();
-      setUsedToday(getUsage().count);
+      if (typeof data.remaining === "number") { setUsageFromServer(data.remaining); setUsedToday(FREE_DAILY - data.remaining); }
       setStep("result");
       track("guidance_completed", { source: "describe" });
     } catch (e) {

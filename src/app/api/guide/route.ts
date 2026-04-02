@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import {
-  type GuidanceResponse,
-  validateGuidanceResponse,
-  getFallbackGuidance,
-} from "@/lib/guidance-types";
+import { validateGuidanceResponse, getFallbackGuidance } from "@/lib/guidance-types";
+import { Redis } from "@upstash/redis";
+
+const FREE_DAILY_LIMIT = 5;
+
+let redis: Redis | null = null;
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN });
+  }
+} catch {
+  console.warn("Upstash Redis not configured — rate limiting disabled");
+}
+
+async function checkRateLimit(ip: string): Promise<{ allowed: boolean; count: number; remaining: number }> {
+  if (!redis) return { allowed: true, count: 0, remaining: FREE_DAILY_LIMIT };
+  const today = new Date().toISOString().slice(0, 10);
+  const key = `calm-parent:usage:${ip}:${today}`;
+  const count = await redis.incr(key);
+  if (count === 1) await redis.expire(key, 86400);
+  return { allowed: count <= FREE_DAILY_LIMIT, count, remaining: Math.max(0, FREE_DAILY_LIMIT - count) };
+}
 
 export type DialValue = "more-empathy" | "balanced" | "more-direct";
 
@@ -45,6 +62,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "API configuration error. Please check server settings." },
         { status: 500 }
+      );
+    }
+
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown";
+    const { allowed, count, remaining } = await checkRateLimit(ip);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "daily_limit_reached", message: `You've used your ${FREE_DAILY_LIMIT} free sessions for today.`, count, remaining: 0 },
+        { status: 429, headers: { "X-RateLimit-Limit": String(FREE_DAILY_LIMIT), "X-RateLimit-Remaining": "0" } }
       );
     }
 
@@ -116,7 +142,8 @@ Reply with only the JSON object.`;
             situation: situationStr.slice(0, 200),
             modelId,
             fallback: true,
-          });
+            remaining,
+          }, { headers: { "X-RateLimit-Limit": String(FREE_DAILY_LIMIT), "X-RateLimit-Remaining": String(remaining) } });
         }
 
         const guidance = validateGuidanceResponse(parsed);
@@ -126,7 +153,8 @@ Reply with only the JSON object.`;
           dial: safeDial,
           situation: situationStr.slice(0, 200),
           modelId,
-        });
+          remaining,
+        }, { headers: { "X-RateLimit-Limit": String(FREE_DAILY_LIMIT), "X-RateLimit-Remaining": String(remaining) } });
       } catch (err) {
         lastError = err;
         const msg = err instanceof Error ? err.message : String(err);

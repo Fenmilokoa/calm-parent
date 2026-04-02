@@ -1,7 +1,6 @@
 const STORAGE_KEY = "calm-parent-usage";
-const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function getUsage(): { count: number; date: string } {
+export function getUsageDisplay(): { count: number; date: string } {
   if (typeof window === "undefined")
     return { count: 0, date: new Date().toISOString().slice(0, 10) };
   try {
@@ -16,18 +15,11 @@ export function getUsage(): { count: number; date: string } {
   }
 }
 
-export function incrementUsage(): void {
+export function setUsageFromServer(remaining: number, freeDaily = 5): void {
   if (typeof window === "undefined") return;
   try {
+    const count = freeDaily - remaining;
     const today = new Date().toISOString().slice(0, 10);
-    const current = getUsage();
-    const newCount =
-      current.date === today ? current.count + 1 : 1;
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ count: newCount, date: today })
-    );
-  } catch {
-    // ignore
-  }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ count, date: today }));
+  } catch {}
 }

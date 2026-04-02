@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getUsage } from "@/lib/usage";
+import { getUsageDisplay } from "@/lib/usage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -10,7 +10,7 @@ export default function ProgressPage() {
   const [usage, setUsage] = useState({ count: 0, date: "" });
 
   useEffect(() => {
-    setUsage(getUsage());
+    setUsage(getUsageDisplay());
   }, []);
 
   return (
