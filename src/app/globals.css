@@ -7,9 +7,9 @@
 /* Trauma-informed design: safety, calm, clarity */
 :root {
   --surface: #ffffff;
-  --muted: oklch(0.97 0 0);
-  --border: oklch(0.922 0 0);
-  --primary: oklch(0.205 0 0);
+  --muted: hsl(40 20% 94%);
+  --border: hsl(40 15% 88%);
+  --primary: hsl(152 25% 38%);
   --primary-hover: #3d6a4a;
   --empathy: #8b9a7c;
   --direct: #6b7c9e;
@@ -18,18 +18,18 @@
   --undo: #8b7355;
   --radius: 0.625rem;
   --radius-sm: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted-foreground: oklch(0.48 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: hsl(45 30% 97%);
+  --foreground: hsl(25 15% 12%);
+  --card: hsl(45 25% 99%);
+  --card-foreground: hsl(25 15% 12%);
+  --popover: hsl(45 25% 99%);
+  --popover-foreground: hsl(25 15% 12%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(40 20% 94%);
+  --secondary-foreground: hsl(25 15% 12%);
+  --muted-foreground: hsl(30 8% 48%);
+  --accent: hsl(38 85% 52%);
+  --accent-foreground: hsl(25 15% 12%);
   --destructive: oklch(0.577 0.245 27.325);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
