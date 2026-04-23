@@ -95,6 +95,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Dial-reactive tone system */
+[data-tone] {
+  transition: background-color 0.6s ease;
+}
+
+[data-tone="empathy"] {
+  --tone-bg: hsl(38 60% 97%);
+  --tone-accent: hsl(38 85% 52%);
+  --tone-shadow: hsl(38 60% 85%);
+  --primary: var(--tone-accent);
+}
+[data-tone="balanced"] {
+  --tone-bg: hsl(45 30% 97%);
+  --tone-accent: hsl(152 25% 38%);
+  --tone-shadow: hsl(152 15% 85%);
+  --primary: var(--tone-accent);
+}
+[data-tone="direct"] {
+  --tone-bg: hsl(210 20% 97%);
+  --tone-accent: hsl(210 35% 45%);
+  --tone-shadow: hsl(210 20% 85%);
+  --primary: var(--tone-accent);
+}
+
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

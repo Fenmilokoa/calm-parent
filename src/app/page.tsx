@@ -26,6 +26,12 @@ type Step =
 
 const FREE_DAILY = 5;
 
+function dialToTone(v: DialValue): "empathy" | "balanced" | "direct" {
+  if (v === "more-empathy") return "empathy";
+  if (v === "more-direct") return "direct";
+  return "balanced";
+}
+
 export default function Home() {
   const [step, setStep] = useState<Step>("landing");
   const [situation, setSituation] = useState("");
@@ -40,6 +46,7 @@ export default function Home() {
   const [showDialTooltip, setShowDialTooltip] = useState(false);
   const [showSaveNudge, setShowSaveNudge] = useState(false);
   const isPremium = false; // Could come from auth/subscription
+  const tone = dialToTone(dial);
 
   const refreshUsage = useCallback(() => {
     setUsedToday(getUsageDisplay().count);
@@ -180,7 +187,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/25">
+    <div data-tone={tone} className="flex min-h-screen flex-col bg-[var(--tone-bg)]">
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10 pt-8 sm:pt-12">
         <header className="mb-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
