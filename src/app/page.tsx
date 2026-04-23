@@ -203,6 +203,9 @@ export default function Home() {
           </div>
           <nav className="flex items-center gap-3">
             <Button asChild variant="ghost" size="sm">
+              <Link href="/about">Our story</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
               <Link href="/progress">Progress</Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
