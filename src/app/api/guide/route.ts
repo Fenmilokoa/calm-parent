@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { validateGuidanceResponse, getFallbackGuidance } from "@/lib/guidance-types";
+import { validateGuidanceResult, getFallbackGuidanceResult } from "@/lib/guidance-types";
 import { Redis } from "@upstash/redis";
 
 const FREE_DAILY_LIMIT = 5;
@@ -44,15 +44,14 @@ const MODEL_CANDIDATES = [
 
 const JSON_SCHEMA_DESC = `Respond with ONLY a single JSON object (no markdown, no code fences, no other text). Use this exact shape:
 {
-  "title": "short headline (one phrase)",
-  "right_now": ["bullet 1", "bullet 2"],
-  "say_this": ["exact phrase 1", "phrase 2"],
-  "do_this": ["action 1", "action 2"],
-  "avoid": ["avoid 1", "avoid 2"],
-  "next_time": ["tip 1", "tip 2"],
-  "reassurance": "one short sentence for the parent"
+  "rightNow": "One to two sentences max. The single most important physical action to take immediately.",
+  "sections": [
+    { "title": "What's happening", "content": "..." },
+    { "title": "Next steps", "content": "..." },
+    { "title": "What to say", "content": "..." }
+  ]
 }
-Rules: Keep each array to 2-5 short bullets. One sentence for reassurance. High-signal only; no filler.`;
+Rules: rightNow must be immediately actionable and calm. Each section content is 1-3 sentences max. High-signal only; no filler.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -134,10 +133,9 @@ Reply with only the JSON object.`;
         let parsed: unknown;
         try {
           parsed = JSON.parse(raw);
-        } catch (parseErr) {
-          console.warn("Guide API: JSON parse failed, using fallback", parseErr);
+        } catch {
           return NextResponse.json({
-            guidance: getFallbackGuidance(),
+            guidance: getFallbackGuidanceResult(),
             dial: safeDial,
             situation: situationStr.slice(0, 200),
             modelId,
@@ -146,7 +144,7 @@ Reply with only the JSON object.`;
           }, { headers: { "X-RateLimit-Limit": String(FREE_DAILY_LIMIT), "X-RateLimit-Remaining": String(remaining) } });
         }
 
-        const guidance = validateGuidanceResponse(parsed);
+        const guidance = validateGuidanceResult(parsed);
 
         return NextResponse.json({
           guidance,

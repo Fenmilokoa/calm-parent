@@ -75,3 +75,36 @@ export function guidanceToReadAloud(g: GuidanceResponse | null): string | null {
   if (g.reassurance) parts.push(g.reassurance);
   return parts.join(" ");
 }
+
+// ── New result shape ──────────────────────────────────────────────────────────
+
+export type GuidanceSectionItem = { title: string; content: string };
+
+export type GuidanceResult = {
+  rightNow: string;
+  sections: GuidanceSectionItem[];
+};
+
+export function validateGuidanceResult(data: unknown): GuidanceResult {
+  if (data === null || typeof data !== "object") return getFallbackGuidanceResult();
+  const o = data as Record<string, unknown>;
+  if (typeof o.rightNow !== "string" || !o.rightNow.trim()) return getFallbackGuidanceResult();
+  if (!Array.isArray(o.sections)) return getFallbackGuidanceResult();
+  const sections: GuidanceSectionItem[] = (o.sections as unknown[])
+    .filter((s): s is Record<string, unknown> => s !== null && typeof s === "object")
+    .filter((s) => typeof s.title === "string" && typeof s.content === "string")
+    .map((s) => ({ title: s.title as string, content: s.content as string }));
+  return { rightNow: o.rightNow.trim(), sections };
+}
+
+export function getFallbackGuidanceResult(): GuidanceResult {
+  return {
+    rightNow: "Take one slow breath and lower your voice. You don't have to fix everything right now — just stay present.",
+    sections: [
+      { title: "What's happening", content: "Your child is overwhelmed and needs to feel safe before they can cooperate." },
+      { title: "Next steps", content: "Stay close, keep your voice calm, and name what you see without judgment." },
+      { title: "What to say", content: "\"I can see you're really upset. I'm here with you.\"" },
+    ],
+  };
+}
+

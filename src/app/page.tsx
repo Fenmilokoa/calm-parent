@@ -7,16 +7,15 @@ import { BreathingExercise } from "@/components/BreathingExercise";
 import { PrivacyBanner } from "@/components/PrivacyBanner";
 import { VoiceControls } from "@/components/VoiceControls";
 import { ProgressBlock } from "@/components/ProgressBlock";
-import { GuidanceView } from "@/components/GuidanceView";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { getUsageDisplay, setUsageFromServer } from "@/lib/usage";
-import type { GuidanceResponse } from "@/lib/guidance-types";
-import { guidanceToReadAloud, validateGuidanceResponse } from "@/lib/guidance-types";
+import type { GuidanceResult } from "@/lib/guidance-types";
+import { validateGuidanceResult } from "@/lib/guidance-types";
 import { track } from "@/lib/analytics";
-import { ShieldCheck } from "lucide-react";
+import { ChevronDown, ShieldCheck } from "lucide-react";
 
 type Step =
   | "landing"
@@ -31,9 +30,10 @@ export default function Home() {
   const [step, setStep] = useState<Step>("landing");
   const [situation, setSituation] = useState("");
   const [dial, setDial] = useState<DialValue>("balanced");
-  const [guidance, setGuidance] = useState<GuidanceResponse | null>(null);
+  const [guidance, setGuidance] = useState<GuidanceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<{ situation: string; guidance: GuidanceResponse }[]>([]);
+  const [history, setHistory] = useState<{ situation: string; guidance: GuidanceResult }[]>([]);
+  const [showMore, setShowMore] = useState(false);
   const [usedToday, setUsedToday] = useState(0);
   const [loadingSkipped, setLoadingSkipped] = useState(false);
   const [quickPath, setQuickPath] = useState(false);
@@ -91,7 +91,7 @@ export default function Home() {
       const data = await res.json();
       if (res.status === 429) { setStep("limit-reached"); setQuickPath(false); return; }
       if (!res.ok) throw new Error(data.error || "Request failed");
-      const guidancePayload = validateGuidanceResponse(data.guidance);
+      const guidancePayload = validateGuidanceResult(data.guidance);
       setGuidance(guidancePayload);
       setHistory((prev) =>
         prev.concat({
@@ -102,6 +102,7 @@ export default function Home() {
       if (typeof data.remaining === "number") { setUsageFromServer(data.remaining); setUsedToday(FREE_DAILY - data.remaining); }
       localStorage.setItem("calm-parent-dial-seen", "1");
       setShowDialTooltip(false);
+      setShowMore(false);
       setStep("result");
       const nudgeDismissed = localStorage.getItem("calm-parent-nudge-dismissed");
       if (!nudgeDismissed) setShowSaveNudge(true);
@@ -133,7 +134,7 @@ export default function Home() {
       const data = await res.json();
       if (res.status === 429) { setStep("limit-reached"); setQuickPath(false); return; }
       if (!res.ok) throw new Error(data.error || "Request failed");
-      const guidancePayload = validateGuidanceResponse(data.guidance);
+      const guidancePayload = validateGuidanceResult(data.guidance);
       setGuidance(guidancePayload);
       setHistory((prev) =>
         prev.concat({
@@ -142,6 +143,7 @@ export default function Home() {
         })
       );
       if (typeof data.remaining === "number") { setUsageFromServer(data.remaining); setUsedToday(FREE_DAILY - data.remaining); }
+      setShowMore(false);
       setStep("result");
       const nudgeDismissed = localStorage.getItem("calm-parent-nudge-dismissed");
       if (!nudgeDismissed) setShowSaveNudge(true);
@@ -342,22 +344,49 @@ export default function Home() {
 
               {step === "result" && guidance && (
                 <>
-                  <div className="space-y-4">
-                    <div className="flex items-end justify-between gap-4">
-                      <div className="space-y-1">
-                        <h2 className="text-2xl font-semibold tracking-tight">
-                          Your next steps
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          Keep your voice low. One boundary. Then wait.
+                  <div className="space-y-5">
+                    {/* Dominant RIGHT NOW card */}
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-[70%] rounded-xl bg-primary px-7 py-6 shadow-md">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground/60">
+                          Right now
+                        </p>
+                        <p className="text-2xl font-bold leading-snug text-primary-foreground">
+                          {guidance.rightNow}
                         </p>
                       </div>
-                      <VoiceControls onTranscript={() => {}} textToRead={guidanceToReadAloud(guidance)} />
                     </div>
+
+                    {/* See more toggle */}
+                    {guidance.sections.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => setShowMore((s) => !s)}
+                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          aria-expanded={showMore}
+                        >
+                          {showMore ? "Hide details" : "See more"}
+                          <ChevronDown
+                            className="size-4 transition-transform duration-200"
+                            style={{ transform: showMore ? "rotate(180deg)" : "rotate(0deg)" }}
+                          />
+                        </button>
+                        {showMore && (
+                          <div className="mt-4 space-y-5 border-l-2 border-primary/20 pl-4">
+                            {guidance.sections.map((section, i) => (
+                              <div key={i} className="space-y-1">
+                                <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
+                                <p className="text-sm leading-relaxed text-muted-foreground">{section.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <p className="text-xs text-muted-foreground">
                       Not a substitute for professional advice. If you or your child are in danger, contact emergency services or 988 (US).
                     </p>
-                    <GuidanceView guidance={guidance} />
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-2">
