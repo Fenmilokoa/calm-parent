@@ -33,14 +33,9 @@ export function BreathingExercise({ onSkip }: { onSkip?: () => void }) {
     };
   }, []);
 
-  const scale = phase === "in"
-    ? 0.72 + progress * 0.28
-    : 1.0 - progress * 0.28;
-
+  const expanded = phase === "in";
   const phaseLabel = phase === "in" ? "Breathe in" : "Breathe out";
-  const countdown = phase === "in"
-    ? Math.ceil(6 - progress * 6)
-    : Math.ceil(6 - progress * 6);
+  const countdown = Math.ceil(6 - progress * 6);
 
   return (
     <div
@@ -49,33 +44,37 @@ export function BreathingExercise({ onSkip }: { onSkip?: () => void }) {
       aria-live="polite"
       aria-label="Breathing exercise while we prepare your guidance"
     >
-      {/* Orb */}
-      <div className="relative flex items-center justify-center" aria-hidden>
-        {/* Outer pulse ring */}
+      {/* Orb — container sized to max outer ring */}
+      <div
+        className="relative"
+        style={{ width: "60vmin", height: "60vmin" }}
+        aria-hidden
+      >
+        {/* Outer ring: 60vmin expanded → 48vmin contracted, 800ms */}
         <div
-          className="absolute rounded-full bg-primary/10 transition-transform duration-[800ms] ease-in-out"
+          className="absolute inset-0 m-auto rounded-full bg-primary/10"
           style={{
-            width: "min(60vw, 60vh)",
-            height: "min(60vw, 60vh)",
-            transform: `scale(${scale * 1.18})`,
+            width: expanded ? "60vmin" : "48vmin",
+            height: expanded ? "60vmin" : "48vmin",
+            transition: "width 800ms ease-in-out, height 800ms ease-in-out",
           }}
         />
-        {/* Mid ring */}
+        {/* Middle ring: 48vmin expanded → 38vmin contracted, 600ms */}
         <div
-          className="absolute rounded-full bg-primary/20 transition-transform duration-[600ms] ease-in-out"
+          className="absolute inset-0 m-auto rounded-full bg-primary/20"
           style={{
-            width: "min(60vw, 60vh)",
-            height: "min(60vw, 60vh)",
-            transform: `scale(${scale * 1.08})`,
+            width: expanded ? "48vmin" : "38vmin",
+            height: expanded ? "48vmin" : "38vmin",
+            transition: "width 600ms ease-in-out, height 600ms ease-in-out",
           }}
         />
-        {/* Core orb */}
+        {/* Inner orb: 38vmin expanded → 30vmin contracted, 400ms */}
         <div
-          className="relative rounded-full bg-primary/50 transition-transform duration-[400ms] ease-in-out"
+          className="absolute inset-0 m-auto rounded-full bg-primary/50"
           style={{
-            width: "min(60vw, 60vh)",
-            height: "min(60vw, 60vh)",
-            transform: `scale(${scale})`,
+            width: expanded ? "38vmin" : "30vmin",
+            height: expanded ? "38vmin" : "30vmin",
+            transition: "width 400ms ease-in-out, height 400ms ease-in-out",
           }}
         />
       </div>
