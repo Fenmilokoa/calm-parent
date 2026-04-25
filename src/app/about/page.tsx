@@ -62,6 +62,12 @@ export default function AboutPage() {
           </p>
         </div>
 
+        <div className="mt-16 text-center">
+          <a href="/" className="inline-block bg-primary text-primary-foreground px-8 py-3 rounded-full text-base font-medium hover:opacity-90 transition-opacity">
+            Get support now
+          </a>
+        </div>
+
       </div>
     </main>
   );
