@@ -9,12 +9,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Calm Parent — Real-time guidance when you need it",
-  description:
-    "Gentle, evidence-based support during tantrums and emotional moments. No login required to start. Your data stays private.",
+  title: "Calm Parent — Guidance for your hardest parenting moments",
+  description: "Trauma-informed, real-time parenting support. Built by a parent, for parents who want to do better.",
+  metadataBase: new URL("https://calm-parent.vercel.app"),
   openGraph: {
     title: "Calm Parent — Guidance for your hardest parenting moments",
-    description: "Trauma-informed, real-time parenting support when you need it most.",
+    description: "Trauma-informed, real-time parenting support. Built by a parent, for parents who want to do better.",
     url: "https://calm-parent.vercel.app",
     siteName: "Calm Parent",
     type: "website",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Calm Parent",
-    description: "Trauma-informed, real-time parenting support when you need it most.",
+    description: "Trauma-informed, real-time parenting support. Built by a parent, for parents who want to do better.",
   },
 };
 
