@@ -17,11 +17,16 @@ try {
 
 async function checkRateLimit(ip: string): Promise<{ allowed: boolean; count: number; remaining: number }> {
   if (!redis) return { allowed: true, count: 0, remaining: FREE_DAILY_LIMIT };
-  const today = new Date().toISOString().slice(0, 10);
-  const key = `calm-parent:usage:${ip}:${today}`;
-  const count = await redis.incr(key);
-  if (count === 1) await redis.expire(key, 86400);
-  return { allowed: count <= FREE_DAILY_LIMIT, count, remaining: Math.max(0, FREE_DAILY_LIMIT - count) };
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `calm-parent:usage:${ip}:${today}`;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, 86400);
+    return { allowed: count <= FREE_DAILY_LIMIT, count, remaining: Math.max(0, FREE_DAILY_LIMIT - count) };
+  } catch {
+    console.warn("Redis rate-limit check failed — allowing request");
+    return { allowed: true, count: 0, remaining: FREE_DAILY_LIMIT };
+  }
 }
 
 export type DialValue = "more-empathy" | "balanced" | "more-direct";
