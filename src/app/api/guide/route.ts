@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { validateGuidanceResponse, getFallbackGuidance } from "@/lib/guidance-types";
 import { Redis } from "@upstash/redis";
+import { findBestScenario } from "@/lib/scenarioMatcher";
 
 const FREE_DAILY_LIMIT = 5;
 
@@ -109,9 +110,35 @@ export async function POST(request: NextRequest) {
       ? `Situation: ${situationStr.slice(0, 500)}`
       : "Parent needs general support during a difficult moment.";
 
+    const matchedScenario = findBestScenario(situationStr);
+    const scenarioContext = matchedScenario
+      ? `You are grounded in Dr Dan Siegel's "connect before redirect" framework and rupture-and-repair attachment science.
+
+SITUATION: ${matchedScenario.title}
+CHILD AGE RANGE: ${matchedScenario.child_age_range}
+
+WHAT'S HAPPENING IN THE CHILD'S BRAIN: ${matchedScenario.brain_state}
+
+DEVELOPMENTAL CONTEXT: ${matchedScenario.developmental_why}
+
+CONNECT FIRST (do these before anything else):
+${matchedScenario.connect_first.map((s) => `- ${s}`).join("\n")}
+
+THEN REDIRECT (only once the child is calmer):
+${matchedScenario.then_redirect.map((s) => `- ${s}`).join("\n")}
+
+WHAT NOT TO DO: ${matchedScenario.what_not_to_do}
+WHY IT BACKFIRES: ${matchedScenario.why_it_backfires}
+
+REPAIR SCRIPT (if the parent lost their cool):
+${matchedScenario.repair_script.map((s) => `- ${s}`).join("\n")}
+
+LONG-TERM SIGNAL THIS SENDS: ${matchedScenario.long_term_signal}`
+      : "";
+
     const prompt = `You are a trauma-informed parenting coach. Output only valid JSON.
 
-${JSON_SCHEMA_DESC}
+${scenarioContext ? scenarioContext + "\n\n" : ""}${JSON_SCHEMA_DESC}
 
 ${toneInstruction}
 

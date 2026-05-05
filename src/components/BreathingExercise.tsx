@@ -1,78 +1,121 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LoaderCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
-const CYCLE_MS = 4000; // 4s breathe in, 4s breathe out
+const INHALE_MS = 6000;
+const EXHALE_MS = 6000;
+const CYCLE_MS = INHALE_MS + EXHALE_MS;
+const SKIP_DELAY_MS = 7000;
 
 export function BreathingExercise({ onSkip }: { onSkip?: () => void }) {
   const [phase, setPhase] = useState<"in" | "out">("in");
   const [progress, setProgress] = useState(0);
+  const [showSkip, setShowSkip] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
 
   useEffect(() => {
     const start = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - start;
-      const cyclePosition = (elapsed % (CYCLE_MS * 2)) / (CYCLE_MS * 2);
+      const cyclePosition = (elapsed % CYCLE_MS) / CYCLE_MS;
       const inPhase = cyclePosition < 0.5;
       setPhase(inPhase ? "in" : "out");
       setProgress(inPhase ? cyclePosition * 2 : (cyclePosition - 0.5) * 2);
     }, 50);
-    return () => clearInterval(interval);
+
+    const copyTimer = setTimeout(() => setShowCopy(true), 1200);
+    const skipTimer = setTimeout(() => setShowSkip(true), SKIP_DELAY_MS);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(copyTimer);
+      clearTimeout(skipTimer);
+    };
   }, []);
 
-  const scale = phase === "in" ? 0.85 + progress * 0.3 : 1.15 - progress * 0.3;
+  const expanded = phase === "in";
+  const phaseLabel = phase === "in" ? "Breathe in" : "Breathe out";
+  const countdown = Math.ceil(6 - progress * 6);
 
   return (
-    <Card
-      className="mx-auto max-w-md"
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f1210]"
       role="status"
       aria-live="polite"
       aria-label="Breathing exercise while we prepare your guidance"
     >
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-base">One moment</CardTitle>
-            <CardDescription>
-              You’re not alone. Let’s get you something you can use right now.
-            </CardDescription>
-          </div>
-          <Badge variant="soft" className="gap-2">
-            <LoaderCircle className="size-3.5 animate-spin" />
-            Thinking
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex flex-col items-center gap-6 py-2">
-          <p className="text-center text-sm text-muted-foreground">
-            {phase === "in" ? "Breathe in… (4)" : "Breathe out… (4)"}
-          </p>
-          <div className="relative" aria-hidden>
-            <div
-              className="rounded-full bg-primary/10 transition-transform duration-300 ease-in-out"
-              style={{
-                width: 140,
-                height: 140,
-                transform: `scale(${scale})`,
-              }}
-            />
-            <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-primary/20" />
-          </div>
-          <p className="text-center text-sm text-muted-foreground">
-            You can keep it simple: steady voice, one clear boundary, then wait.
-          </p>
-          {onSkip && (
-            <Button variant="ghost" size="sm" onClick={onSkip} className="mt-2 min-h-[44px] min-w-[44px]" data-track="skip_breathing" aria-label="Skip breathing exercise">
-              Skip
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {/* Orb — container sized to max outer ring */}
+      <div
+        className="relative"
+        style={{ width: "60vmin", height: "60vmin" }}
+        aria-hidden
+      >
+        {/* Outer ring: 60vmin expanded → 48vmin contracted, 800ms */}
+        <div
+          className="absolute inset-0 m-auto rounded-full bg-primary/10"
+          style={{
+            width: expanded ? "60vmin" : "48vmin",
+            height: expanded ? "60vmin" : "48vmin",
+            transition: "width 800ms ease-in-out, height 800ms ease-in-out",
+          }}
+        />
+        {/* Middle ring: 48vmin expanded → 38vmin contracted, 600ms */}
+        <div
+          className="absolute inset-0 m-auto rounded-full bg-primary/20"
+          style={{
+            width: expanded ? "48vmin" : "38vmin",
+            height: expanded ? "48vmin" : "38vmin",
+            transition: "width 600ms ease-in-out, height 600ms ease-in-out",
+          }}
+        />
+        {/* Inner orb: 38vmin expanded → 30vmin contracted, 400ms */}
+        <div
+          className="absolute inset-0 m-auto rounded-full bg-primary/50"
+          style={{
+            width: expanded ? "38vmin" : "30vmin",
+            height: expanded ? "38vmin" : "30vmin",
+            transition: "width 400ms ease-in-out, height 400ms ease-in-out",
+          }}
+        />
+      </div>
+
+      {/* Phase label */}
+      <div className="mt-12 text-center">
+        <p className="text-2xl font-light tracking-widest uppercase" style={{ color: "hsl(152 25% 75% / 0.8)" }}>
+          {phaseLabel}
+        </p>
+        <p className="mt-1 text-sm tabular-nums" style={{ color: "hsl(152 25% 50% / 0.6)" }}>
+          {countdown}
+        </p>
+      </div>
+
+      {/* Fading copy — appears after 1.2s */}
+      <div
+        className="mt-10 px-8 text-center transition-opacity duration-1000 ease-in"
+        style={{ opacity: showCopy ? 1 : 0 }}
+      >
+        <p className="text-lg font-light text-white/70 leading-relaxed">
+          You caught yourself.
+        </p>
+        <p className="text-lg font-light text-white/50 leading-relaxed">
+          That matters.
+        </p>
+      </div>
+
+      {/* Skip — appears after 7s */}
+      <div
+        className="absolute bottom-10 transition-opacity duration-700 ease-in"
+        style={{ opacity: showSkip ? 1 : 0, pointerEvents: showSkip ? "auto" : "none" }}
+      >
+        <button
+          onClick={onSkip}
+          className="text-sm text-white/30 hover:text-white/60 transition-colors underline underline-offset-4"
+          aria-label="Skip breathing exercise"
+          data-track="skip_breathing"
+        >
+          Skip
+        </button>
+      </div>
+    </div>
   );
 }
