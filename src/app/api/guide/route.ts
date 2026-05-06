@@ -41,11 +41,11 @@ const TONE_PROMPTS: Record<DialValue, string> = {
 };
 
 const MODEL_CANDIDATES = [
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-pro",
-  "gemini-1.5-pro-latest",
+  "gemini-2.5-flash-preview-04-17",
+  "gemini-2.5-flash",
   "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash",
 ] as const;
 
 const JSON_SCHEMA_DESC = `Respond with ONLY a single JSON object (no markdown, no code fences, no other text). Use this exact shape:
@@ -189,12 +189,23 @@ Reply with only the JSON object.`;
         lastError = err;
         const msg = err instanceof Error ? err.message : String(err);
         if (/404|not found|is not supported/i.test(msg)) continue;
+        if (/429|rate.?limit|resource.?exhaust|quota/i.test(msg)) continue;
         throw err;
       }
     }
 
-    const finalMsg =
-      lastError instanceof Error ? lastError.message : String(lastError);
+    // If all models failed — check if rate-limited and return fallback rather than error
+    const finalMsg = lastError instanceof Error ? lastError.message : String(lastError);
+    if (/429|rate.?limit|resource.?exhaust|quota/i.test(finalMsg)) {
+      console.warn("All Gemini models rate-limited — returning fallback guidance");
+      return NextResponse.json({
+        guidance: getFallbackGuidanceResult(),
+        dial: safeDial,
+        situation: situationStr.slice(0, 200),
+        fallback: true,
+        remaining,
+      }, { headers: { "X-RateLimit-Limit": String(FREE_DAILY_LIMIT), "X-RateLimit-Remaining": String(remaining) } });
+    }
     throw new Error(
       `No supported Gemini model found for this API key. Last error: ${finalMsg}`
     );
